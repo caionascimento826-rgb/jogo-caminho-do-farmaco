@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete o Caminho do Fármaco</title>
+<style>
+:root{--bg:#f4f8fc;--card:#fff;--ink:#17324d;--accent:#2467a5;--ok:#218739;--bad:#c73c3c;--muted:#66788a}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#174f83,#2f86c8);color:white;padding:28px 18px;text-align:center}
+header h1{margin:0 0 8px;font-size:clamp(28px,5vw,44px)} header p{margin:0;font-size:16px}
+.container{max-width:1050px;margin:auto;padding:20px}
+.screen{display:none}.screen.active{display:block}
+.card{background:var(--card);border-radius:18px;padding:24px;margin:18px 0;box-shadow:0 6px 22px #17324d18}
+h2{margin-top:0}.center{text-align:center}
+button{border:0;border-radius:12px;padding:13px 18px;background:var(--accent);color:white;font-weight:700;cursor:pointer;font-size:15px;margin:5px}
+button:hover{filter:brightness(1.08)} button.secondary{background:#718397}
+button.success{background:var(--ok)} button.danger{background:var(--bad)}
+.progress{height:12px;background:#dbe6ef;border-radius:99px;overflow:hidden;margin:12px 0 20px}.bar{height:100%;background:#2f86c8;width:0;transition:.3s}
+.instructions{background:#eef6ff;border-left:5px solid #2f86c8;padding:14px;border-radius:10px}
+.path{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:22px 0}
+.slot{width:155px;min-height:92px;border:2px dashed #9db2c5;border-radius:14px;padding:10px;text-align:center;background:#f9fbfd}
+.slot.filled{border-style:solid;background:#edf7ff}.slot small{display:block;color:var(--muted);margin-bottom:5px}
+.arrow{font-size:26px}.pieces{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.piece{padding:14px 18px;border-radius:13px;background:white;border:2px solid #7ea6c7;cursor:grab;font-weight:700;box-shadow:0 3px 9px #00000012}
+.piece.used{opacity:.35;cursor:not-allowed}.feedback{min-height:28px;font-weight:700;margin:12px 0}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.options{display:grid;gap:10px}.option{text-align:left;background:#f7fafc;color:var(--ink);border:2px solid #d4e0ea}.option.correct{border-color:#218739;background:#eef9f0}.option.wrong{border-color:#c73c3c;background:#fff0f0}
+.score{font-size:18px;font-weight:700;text-align:right}.stage{display:grid;grid-template-columns:90px 1fr;gap:18px;align-items:center}.icon{font-size:62px;text-align:center}
+.glossary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.term{background:#f7fafc;border:1px solid #dbe5ed;border-radius:12px;padding:14px}.term b{display:block;margin-bottom:5px}
+.badge{display:inline-block;background:#eaf4fc;color:#175788;padding:7px 11px;border-radius:99px;font-size:13px;font-weight:700}
+@media(max-width:700px){.slot{width:135px}.arrow{display:none}.stage{grid-template-columns:1fr}.icon{font-size:48px}}
+footer{text-align:center;color:var(--muted);padding:25px}
+</style>
+</head>
+<body>
+<header>
+<h1>💊 Complete o Caminho do Fármaco</h1>
+<p>Jogo virtual de Farmacocinética e Farmacodinâmica</p>
+</header>
+
+<noscript><div style="padding:16px;background:#fff0f0;color:#8b1e1e;text-align:center;font-weight:bold">
+Este jogo precisa de JavaScript ativado. Se a pré-visualização do aplicativo não executar o jogo,
+baixe o arquivo e abra-o no Safari, Chrome ou outro navegador.
+</div></noscript><div class="container">
+<div class="score">Pontuação: <span id="score">0</span> ⭐</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+
+<section id="home" class="screen active">
+<div class="card center">
+<h2>🎯 Desafio</h2>
+<p>Organize o percurso do medicamento no organismo, compreenda o que acontece em cada etapa e teste seus conhecimentos com situações clínicas.</p>
+<div class="instructions"><b>Como jogar:</b> clique em uma peça e depois no espaço correspondente. No computador, também é possível arrastar as peças.</div>
+<br><button id="startBtn" type="button">▶ Iniciar jogo</button>
+</div>
+<div class="card">
+<h2>O que você vai aprender?</h2>
+<ul>
+<li>Administração, absorção, distribuição, metabolismo e excreção (ADME).</li>
+<li>Relação entre concentração do fármaco e efeito.</li>
+<li>Alvos farmacológicos e mecanismo de ação.</li>
+<li>Como alterações renais, hepáticas e interações podem modificar a resposta.</li>
+</ul>
+</div>
+</section>
+
+<section id="order" class="screen">
+<div class="card">
+<h2>🧩 Fase 1 — Complete o caminho</h2>
+<p>Coloque as cinco etapas na ordem correta.</p>
+<div class="path" id="path"></div>
+<div class="pieces" id="pieces"></div>
+<div class="feedback" id="orderFeedback"></div>
+<div class="center"><button id="checkOrder" onclick="checkOrder()">✓ Conferir</button></div>
+</div>
+</section>
+
+<section id="adme" class="screen">
+<div class="card">
+<h2>🔬 Fase 2 — Explore o ADME</h2>
+<p>Clique nas etapas para descobrir o que acontece com o medicamento.</p>
+<div id="admeContent"></div>
+<div class="center"><button onclick="nextScreen('pharma')">Continuar →</button></div>
+</div>
+</section>
+
+<section id="pharma" class="screen">
+<div class="card">
+<h2>🎯 Fase 3 — Farmacodinâmica</h2>
+<div class="stage"><div class="icon">🎯</div><div><b>Alvo farmacológico:</b> receptor, enzima, canal iônico ou outro componente celular ao qual o fármaco se liga ou sobre o qual atua.</div></div>
+<div class="stage"><div class="icon">🧲</div><div><b>Ligação ao alvo:</b> a interação pode ativar, bloquear ou modificar uma função biológica.</div></div>
+<div class="stage"><div class="icon">📈</div><div><b>Concentração × efeito:</b> em geral, mudanças na concentração no local de ação podem modificar a intensidade do efeito, até os limites do sistema farmacológico.</div></div>
+<div class="stage"><div class="icon">✅</div><div><b>Efeito terapêutico:</b> é a resposta desejada que leva ao benefício clínico.</div></div>
+<div class="stage"><div class="icon">⚠️</div><div><b>Efeitos adversos:</b> respostas indesejadas que podem ocorrer dependendo do fármaco, dose, paciente e contexto clínico.</div></div>
+<div class="center"><button onclick="nextScreen('quiz')">Ir para o quiz →</button></div>
+</div>
+</section>
+
+<section id="quiz" class="screen">
+<div class="card">
+<h2>🧠 Fase 4 — Quiz</h2>
+<div id="quizBox"></div>
+</div>
+</section>
+
+<section id="case" class="screen">
+<div class="card">
+<h2>🏥 Fase 5 — Situação-problema</h2>
+<p><b>Caso:</b> um paciente apresenta redução importante da função renal e utiliza um medicamento cuja eliminação depende significativamente dos rins. O que pode acontecer se a dose não for ajustada quando necessário?</p>
+<div class="options">
+<button class="option" onclick="caseAnswer(this,false)">A) A eliminação sempre aumenta e a concentração cai.</button>
+<button class="option" onclick="caseAnswer(this,true)">B) A eliminação pode diminuir, aumentando a exposição ao fármaco e o risco de efeitos adversos.</button>
+<button class="option" onclick="caseAnswer(this,false)">C) A função renal não interfere na farmacocinética.</button>
+<button class="option" onclick="caseAnswer(this,false)">D) O medicamento deixa de ser absorvido pelo intestino.</button>
+</div>
+<div id="caseFeedback" class="feedback"></div>
+</div>
+</section>
+
+<section id="glossary" class="screen">
+<div class="card">
+<h2>📖 Fase 6 — Glossário farmacológico</h2>
+<div class="glossary">
+<div class="term"><b>Farmacocinética</b>O que o organismo faz com o fármaco.</div>
+<div class="term"><b>Farmacodinâmica</b>O que o fármaco faz no organismo.</div>
+<div class="term"><b>Absorção</b>Entrada do fármaco na circulação sistêmica.</div>
+<div class="term"><b>Distribuição</b>Repartição do fármaco entre sangue e tecidos.</div>
+<div class="term"><b>Metabolismo</b>Transformação química do fármaco, frequentemente no fígado.</div>
+<div class="term"><b>Excreção</b>Remoção do fármaco ou metabólitos do organismo.</div>
+<div class="term"><b>Biodisponibilidade</b>Fração da dose que chega à circulação sistêmica, de acordo com a definição aplicável.</div>
+<div class="term"><b>Meia-vida</b>Tempo necessário para a concentração plasmática diminuir em 50%, em condições farmacocinéticas apropriadas.</div>
+<div class="term"><b>Concentração plasmática</b>Quantidade de fármaco presente em determinado volume de plasma.</div>
+<div class="term"><b>Receptor</b>Alvo molecular capaz de reconhecer e responder a um ligante.</div>
+<div class="term"><b>Agonista</b>Substância que ativa um receptor e produz resposta.</div>
+<div class="term"><b>Antagonista</b>Substância que reduz ou impede a ação de um agonista ao se ligar ao alvo.</div>
+</div>
+<div class="center"><button onclick="finishGame()">🏆 Finalizar</button></div>
+</div>
+</section>
+
+<section id="finish" class="screen">
+<div class="card center">
+<h2>🎉 Parabéns!</h2>
+<p>Você completou o caminho do fármaco e revisou conceitos de farmacocinética e farmacodinâmica.</p>
+<p style="font-size:28px"><b>⭐ <span id="finalScore">0</span> pontos</b></p>
+<p id="performance"></p>
+<button onclick="location.reload()">🔄 Jogar novamente</button>
+</div>
+</section>
+</div>
+<footer>Material didático — TDE de Farmacologia | Complete o Caminho do Fármaco</footer>
+
+<script>
+const stages=[
+{name:"Administração",icon:"💊",text:"O medicamento é introduzido no organismo pela via escolhida. A via influencia a velocidade de início do efeito e, em algumas situações, a biodisponibilidade."},
+{name:"Absorção",icon:"🧬",text:"É a passagem do fármaco do local de administração para a circulação sistêmica. Pode ser influenciada pela via, formulação, fluxo sanguíneo, pH e outros fatores."},
+{name:"Distribuição",icon:"🩸",text:"Após chegar ao sangue, o fármaco pode se distribuir para diferentes tecidos. Fluxo sanguíneo, ligação às proteínas plasmáticas e características do fármaco influenciam esse processo."},
+{name:"Metabolismo",icon:"🫀",text:"O fármaco pode sofrer biotransformação, frequentemente no fígado. Enzimas e interações medicamentosas podem alterar a velocidade desse processo."},
+{name:"Excreção",icon:"🫘",text:"O fármaco e/ou seus metabólitos são removidos do organismo. Os rins são uma via importante de eliminação; alterações da função renal podem modificar a exposição ao medicamento."}
+];
+let score=0, currentQuiz=0;
+function addScore(n){score+=n;document.getElementById("score").textContent=score}
+function nextScreen(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");window.scrollTo(0,0)}
+function updateBar(n){document.getElementById("bar").style.width=n+"%"}
+function startGame(){score=0;document.getElementById("score").textContent=0;buildOrder();updateBar(10);nextScreen("order")}
+function buildOrder(){
+const path=document.getElementById("path"), pieces=document.getElementById("pieces");path.innerHTML="";pieces.innerHTML="";
+for(let i=0;i<5;i++){let s=document.createElement("div");s.className="slot";s.dataset.pos=i;s.innerHTML="<small>Etapa "+(i+1)+"</small><span>Solte aqui</span>";s.onclick=()=>selectPieceForSlot(s);path.appendChild(s);if(i<4){let a=document.createElement("div");a.className="arrow";a.textContent="→";path.appendChild(a)}}
+[...stages].sort(()=>Math.random()-.5).forEach((st,i)=>{let p=document.createElement("div");p.className="piece";p.draggable=true;p.dataset.name=st.name;p.textContent=st.icon+" "+st.name;p.onclick=()=>selectPiece(p);p.ondragstart=e=>e.dataTransfer.setData("text/plain",st.name);pieces.appendChild(p)})
+document.querySelectorAll(".slot").forEach(s=>{s.ondragover=e=>e.preventDefault();s.ondrop=e=>{let name=e.dataTransfer.getData("text/plain");putInSlot(s,name)}})
+}
+let selected=null;
+function selectPiece(p){if(p.classList.contains("used"))return;selected=p;document.querySelectorAll(".piece").forEach(x=>x.style.outline="");p.style.outline="4px solid #8fc3eb"}
+function selectPieceForSlot(s){if(selected){putInSlot(s,selected.dataset.name);selected.style.outline="";selected=null}}
+function putInSlot(s,name){if(s.classList.contains("filled"))return;let p=[...document.querySelectorAll(".piece")].find(x=>x.dataset.name===name);if(!p||p.classList.contains("used"))return;s.classList.add("filled");s.dataset.name=name;s.querySelector("span").textContent=name;p.classList.add("used")}
+function checkOrder(){
+let slots=[...document.querySelectorAll(".slot")], correct=slots.every((s,i)=>s.dataset.name===stages[i].name), f=document.getElementById("orderFeedback");
+if(correct){addScore(20);f.className="feedback ok";f.textContent="🎉 Perfeito! O caminho ADME está correto. +20 pontos";document.getElementById("checkOrder").disabled=true;updateBar(25);setTimeout(()=>{buildADME();nextScreen("adme")},900)}
+else{f.className="feedback bad";f.textContent="❌ A sequência ainda não está correta. Tente reorganizar as etapas."}
+}
+function buildADME(){
+let box=document.getElementById("admeContent");box.innerHTML="";
+stages.forEach((s,i)=>{let d=document.createElement("div");d.className="card";d.style.cursor="pointer";d.innerHTML=`<div class="stage"><div class="icon">${s.icon}</div><div><h3>${i+1}. ${s.name}</h3><p>${s.text}</p></div></div>`;box.appendChild(d)})
+}
+const questions=[
+["Qual etapa representa a transformação química do fármaco, frequentemente realizada no fígado?",["Absorção","Distribuição","Metabolismo","Excreção"],2],
+["Qual conceito indica a fração da dose que chega à circulação sistêmica?",["Biodisponibilidade","Potência","Afinidade","Eficácia"],0],
+["O que geralmente pode ocorrer quando a eliminação renal de um fármaco diminui?",["Menor exposição em todos os casos","Aumento da exposição, dependendo do fármaco","Absorção imediata","Desaparecimento do efeito"],1],
+["Farmacodinâmica estuda principalmente:",["O caminho do fármaco pelo organismo","O que o organismo faz com o fármaco","Os efeitos e mecanismos do fármaco no organismo","Somente a excreção"],2]
+];
+function buildQuiz(){renderQuestion()}
+function renderQuestion(){
+let q=questions[currentQuiz], box=document.getElementById("quizBox");box.innerHTML=`<p><span class="badge">Pergunta ${currentQuiz+1} de ${questions.length}</span></p><h3>${q[0]}</h3><div class="options">${q[1].map((x,i)=>`<button class="option" onclick="quizAnswer(this,${i===q[2]})">${String.fromCharCode(65+i)}) ${x}</button>`).join("")}</div><div id="quizFeedback" class="feedback"></div>`;
+}
+function quizAnswer(btn,correct){
+document.querySelectorAll("#quizBox .option").forEach(x=>x.disabled=true);let f=document.getElementById("quizFeedback");
+if(correct){addScore(10);btn.classList.add("correct");f.className="feedback ok";f.textContent="✅ Correto! +10 pontos"}else{btn.classList.add("wrong");f.className="feedback bad";f.textContent="❌ Incorreto. Revise o conceito e continue."}
+setTimeout(()=>{currentQuiz++;if(currentQuiz<questions.length)renderQuestion();else{updateBar(70);nextScreen("case")}},1100)
+}
+function caseAnswer(btn,correct){
+document.querySelectorAll("#case .option").forEach(x=>x.disabled=true);let f=document.getElementById("caseFeedback");
+if(correct){addScore(20);btn.classList.add("correct");f.className="feedback ok";f.textContent="🎉 Correto! +20 pontos. A menor eliminação pode aumentar a exposição ao medicamento."}
+else{btn.classList.add("wrong");f.className="feedback bad";f.textContent="❌ Revise a relação entre função renal, eliminação e concentração."}
+setTimeout(()=>{updateBar(88);nextScreen("glossary")},1200)
+}
+function finishGame(){updateBar(100);document.getElementById("finalScore").textContent=score;document.getElementById("performance").textContent=score>=70?"Excelente! Você demonstrou domínio dos conceitos revisados.":score>=50?"Muito bem! Revise alguns pontos e tente novamente.":"Continue estudando e jogue novamente para reforçar o conteúdo.";nextScreen("finish")}
+window.addEventListener("DOMContentLoaded", function(){
+  document.querySelectorAll(".screen").forEach(function(x){x.classList.remove("active")});
+  document.getElementById("home").classList.add("active");
+  var startBtn = document.getElementById("startBtn");
+  if (startBtn) startBtn.addEventListener("click", function(e){
+    e.preventDefault();
+    startGame();
+  });
+  buildQuiz();
+});
+</script>
+</body>
+</html>
